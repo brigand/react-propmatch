@@ -6,7 +6,7 @@ export default function propMatch(name, propTypeToWrap=PropTypes.any){
         if (!Component.propTypes) return makeFactoryForKey(name);
 
         // find key for key,value of C.pT where value===exports.propType
-        for (let propTypeKey of Object.getOwnPropertyNames(Component.propTypes)) {
+        for (let propTypeKey of (Object.getOwnPropertyNames(Component.propTypes): Array)) {
             const propTypeValue = Component.propTypes[propTypeKey];
             if (propTypeValue === propType) {
                 return makeFactoryForKey(propTypeKey);
