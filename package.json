@@ -2,7 +2,7 @@
   "name": "react-propmatch",
   "version": "0.2.2",
   "description": "",
-  "main": "./lib/propMatch.js",
+  "main": "./lib/index.js",
   "scripts": {
     "test": "babel-tape-runner test/*.test.js",
     "lib": "./scripts/lib",
