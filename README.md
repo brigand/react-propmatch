@@ -1,5 +1,6 @@
 
-propmatch is a useful utility for all high order components. It's useful because strings are brittle identifiers in composition.
+propmatch is a useful utility for all high order components. It's useful because strings are brittle identifiers in composition, and
+it allows you to see where props are coming from in the wrapped component.
 
 ## Install
 
@@ -11,87 +12,92 @@ npm install react-propmatch
 
 [npm]: https://www.npmjs.com/package/react-propmatch
 
-## Guide/Rationale
+## Guide
 
-Imagine you have a high order component that provides a random number.
+Note: This guide assumes you're using es6 with babel, and the optional 'es7.classProperties' transform.
 
-```js
-function providesRandomNumber(Component){
-    return class ProvidesNumber {
-        constructor(){
-            this.number = Math.random();
-        }
-        render(){
-            return <Component {...this.props} number={this.number} />;
-        }
-    }
-}
-```
-
-Cool and now I want to use it on this TimesRandom component. The api looks like this `<TimesRandom number={5} />` and displays a number between 0 and 5;
+Let's start by writing a simple high order component that sends the current time as a prop. The details are omitted for brevity.
 
 ```js
-import providesRandomNumber from './providesRandomNumber';
+function providesTime(Component){
 
-export default
-@providesRandomNumber
-class TimesRandom {
-    static propTypes = {
-        number: React.PropTypes.number
-    };
+  return class TimeProvider extends React.Component {
+    constructor(){ ... }
+    componentDidMount(){ ... }
+    componentWillUnmount(){ ... }
+
     render(){
-        return <div>{this.props.number * this.props.number}</div>;
+      return <Component {...this.props} time={this.state.time} />
     }
+  };
+}
+
+@providesTime
+class Clock {
+  render(){
+    return <div>new Date(this.props.time).toString()</div>;
+  }
 }
 ```
 
-Wait! Where did the `5` go? There's compitition over the 'number' name. Also, it's not clear looking at TimesRandom what props providesRandomNumber will be passing.
-
-If we turn to dependency injection via propTypes matching, this gives TimesRandom control over the prop name, and a clear way to document its usage.
+Because string keys are brittle and conflict prone, and the origin of props is often unclear, we can use react-propmatch to
+enable a clearer way of describing the relationship.
 
 ```js
 import propMatch from 'react-propmatch';
 
-// by default it'll use "number" as the prop name
-// we also declare the propType in case our HOC passes something invalid,
-// and also so it self documents what it's passing down
-// the second parameter defaults to PropTypes.any
-const numberProp = propMatch('number', React.PropTypes.number);
-export let propType = numberProp.propType;
+var {propTypes, makeFactory} = propMatch({time: null});
 
-function providesRandomNumber(Component){
-    // make a prop returning factory
-    var makeProps = numberProp.makeFactory(Component);
+function providesTime(Component){
+  var makeProps = makeFactory(Component);
 
-    return class ProvidesNumber {
-        constructor(){
-            this.number = Math.random();
-        }
-        render(){
-            return <Component {...this.props} {...makeProps(this.number)} />;
-        }
+  return class TimeProvider extends React.Component {
+    constructor(){ ... }
+    componentDidMount(){ ... }
+    componentWillUnmount(){ ... }
+
+    render(){
+      return <Component 
+        {...this.props} 
+        {...makeProps({time: this.state.time})}
+      />
     }
+  };
+}
+
+// expose the propTypes
+providesTime.propTypes = propTypes;
+
+@providesTime
+class Clock {
+  render(){
+    return <div>new Date(this.props.time).toString()</div>;
+  }
 }
 ```
 
-Now with a minor modification, we say that the random number should show up as `this.props.contrivedExample`, and so it is. Now our component
-works correctly and we can clearly see the relationship between `providesRandomNumber` and `TimesRandom`'s props without looking at the
-`providesRandomNumber` source. Also we need to change neither `providesRandomNumber` or `TimesRandom`'s api when there's a conflict.
+And this behaves exactly like the first example. So let's say that our clock want's to take a prop called 'time' which is a boolean. If true, don't render the date.
+
+Damn, we have a conflict. Well instead of changing clock's api, or having to change the possibly third-party `providesTime`, we just declare our propTypes.
 
 ```js
-import providesRandomNumber, {propType as randomNumberProp} from './providesRandomNumber';
+@providesTime
+class Clock {
+  static propTypes = {
+    time: PropTypes.boolean,
+    milliseconds: providesTime.propTypes.time,
+  };
 
-export default
-@providesRandomNumber
-class TimesRandom {
-    static propTypes = {
-        number: React.PropTypes.number,
-        contrivedExample: randomNumberProp
-    };
-    render(){
-        return <div>{this.props.number * this.props.contrivedExample}</div>;
-    }
+  render(){
+    var d = new Date(this.props.milliseconds);
+    return <div>{this.props.time ? d.toTimeString() : d.toString()}</div>;
+  }
 }
 ```
+
+react-propmatch looks at the propTypes and tries to find a match. It falls back to using the keys you provide initially, which is why it defaults to 'time' here.
+
+That's all, happy high order component making!
+
 
 
