@@ -1,5 +1,6 @@
 import test from 'tape'
 import propMatch from '../src/index';
+import {PropTypes} from 'react';
 
 test('index', (t) => {
 
@@ -16,12 +17,13 @@ test('index', (t) => {
     class Component {
       static propTypes = {
         'other a': propTypes.a,
+        'other b': PropTypes.number,
       };
     }
-    var makeProps = makeFactory(Component);
+    var {makeProps, restPropTypes} = makeFactory(Component);
     var props = makeProps({a: 1, b: 2});
     t.deepEqual(props, {'other a': 1, b: 2});
-
+    t.deepEqual(restPropTypes, {'other b': PropTypes.number});
     t.end();
   });
 });

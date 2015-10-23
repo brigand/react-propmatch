@@ -29,10 +29,15 @@ export default function propMatch(props){
    Call this once directly inside the high order component.
    */
   res.makeFactory = (Component) => {
+    var restPropTypes = Object.assign({}, Component.propTypes || {});
+
     var keyMap = sourceKeys.reduce((keyMap, key) => {
       keyMap[key] = findPropType(Component, res.propTypes[key], key);
+      delete restPropTypes[keyMap[key]];
       return keyMap;
     }, {});
+
+
 
     /*
      This function takes props and returns props.
@@ -42,16 +47,19 @@ export default function propMatch(props){
      <Component {...thisFunction({a: 1})} />
      ```
      */
-    return (inProps) => {
-      // potentially hot path code
-      var outProps = {};
-      for (let i=0; i<sourceKeys.length; i++) {
-        let inKey = sourceKeys[i];
-        let outKey = keyMap[inKey];
-        outProps[outKey] = inProps[inKey];
+    return {
+      restPropTypes: restPropTypes,
+      makeProps: (inProps) => {
+        // potentially hot path code
+        var outProps = {};
+        for (let i=0; i<sourceKeys.length; i++) {
+          let inKey = sourceKeys[i];
+          let outKey = keyMap[inKey];
+          outProps[outKey] = inProps[inKey];
+        }
+        return outProps;
       }
-      return outProps;
-    };
+    }
   };
 
   return res;

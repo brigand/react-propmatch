@@ -49,9 +49,10 @@ import propMatch from 'react-propmatch';
 var {propTypes, makeFactory} = propMatch({time: null});
 
 function providesTime(Component){
-  var makeProps = makeFactory(Component);
+  var {makeProps, restPropTypes} = makeFactory(Component);
 
   return class TimeProvider extends React.Component {
+    static propTypes = restPropTypes;
     constructor(){ ... }
     componentDidMount(){ ... }
     componentWillUnmount(){ ... }
